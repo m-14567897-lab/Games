@@ -1,0 +1,88 @@
+const canvas = document.getElementById("gameCanvas");
+const ctx = canvas.getContext("2d");
+
+// Game Objects
+const player = { x: 10, y: 150, width: 10, height: 80, dy: 0, speed: 6 };
+const ai = { x: canvas.width - 20, y: 150, width: 10, height: 80, speed: 4 };
+const ball = { x: 300, y: 200, radius: 7, dx: 4, dy: 4 };
+
+// Key Event Listeners
+window.addEventListener("keydown", (e) => {
+  if (e.key === "w" || e.key === "ArrowUp") player.dy = -player.speed;
+  if (e.key === "s" || e.key === "ArrowDown") player.dy = player.speed;
+});
+
+window.addEventListener("keyup", (e) => {
+  if (["w", "s", "ArrowUp", "ArrowDown"].includes(e.key)) player.dy = 0;
+});
+
+// Reset Ball
+function resetBall() {
+  ball.x = canvas.width / 2;
+  ball.y = canvas.height / 2;
+  ball.dx = -ball.dx;
+  ball.dy = (Math.random() - 0.5) * 8;
+}
+
+// Main Game Loop
+function update() {
+  // Move Player
+  player.y += player.dy;
+  player.y = Math.max(0, Math.min(canvas.height - player.height, player.y));
+
+  // Move AI (Simple tracking logic)
+  if (ball.y < ai.y + ai.height / 2) ai.y -= ai.speed;
+  else ai.y += ai.speed;
+  ai.y = Math.max(0, Math.min(canvas.height - ai.height, ai.y));
+
+  // Move Ball
+  ball.x += ball.dx;
+  ball.y += ball.dy;
+
+  // Wall Collisions (Top / Bottom)
+  if (ball.y - ball.radius < 0 || ball.y + ball.radius > canvas.height) {
+    ball.dy *= -1;
+  }
+
+  // Paddle Collisions
+  function checkCollide(p) {
+    return (
+      ball.x - ball.radius < p.x + p.width &&
+      ball.x + ball.radius > p.x &&
+      ball.y > p.y &&
+      ball.y < p.y + p.height
+    );
+  }
+
+  if (checkCollide(player)) ball.dx = Math.abs(ball.dx) * 1.05; // Bounce right
+  if (checkCollide(ai)) ball.dx = -Math.abs(ball.dx) * 1.05;    // Bounce left
+
+  // Scoring
+  if (ball.x < 0 || ball.x > canvas.width) {
+    resetBall();
+  }
+}
+
+function render() {
+  // Clear screen
+  ctx.fillStyle = "#000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  // Draw Paddles
+  ctx.fillStyle = "#fff";
+  ctx.fillRect(player.x, player.y, player.width, player.height);
+  ctx.fillRect(ai.x, ai.y, ai.width, ai.height);
+
+  // Draw Ball
+  ctx.beginPath();
+  ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);
+  ctx.fill();
+}
+
+function loop() {
+  update();
+  render();
+  requestAnimationFrame(loop);
+}
+
+loop();
